@@ -1,0 +1,42 @@
+{
+  "name": "@ronin-yashu/ai-persona",
+  "version": "0.1.0",
+  "description": "A fluent AI SDK with terminal chat, personas, and RAG support",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "bin": {
+    "ai-persona": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "build": "tsup src/index.js src/cli.js --format esm,cjs --clean",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ronin-yashu/NPM.git"
+  },
+  "keywords": ["ai", "cli", "sdk", "rag", "chatbot"],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Ronin-yashu/NPM/issues"
+  },
+  "homepage": "https://github.com/Ronin-yashu/NPM#readme",
+  "dependencies": {
+    "@clack/prompts": "^1.7.0",
+    "ai": "^7.0.16"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "nodemon": "^3.1.0"
+  }
+}
