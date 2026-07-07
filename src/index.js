@@ -1,9 +1,10 @@
+import 'dotenv/config';
 import { generateText } from 'ai';
 
 export class AIClient {
-  constructor(apiKey, provider = 'openai') {
+  constructor(apiKey = process.env.AI_API_KEY, provider = 'openai') {
     this.apiKey = apiKey;
-    this.provider = provider;
+    this._provider = provider;
     this.systemPrompt = '';
   }
 
@@ -12,9 +13,17 @@ export class AIClient {
     return this;
   }
 
+  provider(name) {
+    this._provider = name;
+    return this;
+  }
+
   async chat(message) {
+    if (!this.apiKey) {
+      throw new Error('No API key found. Run `npx ai-persona init` first.');
+    }
     const { text } = await generateText({
-      model: this.provider,
+      model: this._provider,
       system: this.systemPrompt,
       prompt: message,
     });
@@ -22,4 +31,4 @@ export class AIClient {
   }
 }
 
-export const ai = new AIClient(process.env.AI_API_KEY);
+export const ai = new AIClient();

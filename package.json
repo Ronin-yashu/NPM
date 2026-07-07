@@ -14,17 +14,26 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "nodemon src/index.js",
-    "build": "tsup src/index.js src/cli.js --format esm,cjs --clean",
+    "build": "tsup",
     "prepublishOnly": "npm run build"
+    
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Ronin-yashu/NPM.git"
   },
-  "keywords": ["ai", "cli", "sdk", "rag", "chatbot"],
+  "keywords": [
+    "ai",
+    "cli",
+    "sdk",
+    "rag",
+    "chatbot"
+  ],
   "author": "",
   "license": "ISC",
   "bugs": {
@@ -33,10 +42,12 @@
   "homepage": "https://github.com/Ronin-yashu/NPM#readme",
   "dependencies": {
     "@clack/prompts": "^1.7.0",
-    "ai": "^7.0.16"
+    "ai": "^7.0.16",
+    "dotenv": "^17.4.2"
   },
   "devDependencies": {
+    "nodemon": "^3.1.0",
     "tsup": "^8.5.1",
-    "nodemon": "^3.1.0"
+    "typescript": "^6.0.3"
   }
 }

@@ -1,0 +1,4 @@
+{
+  "useCase": "both",
+  "provider": "anthropic"
+}
