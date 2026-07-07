@@ -1,18 +1,42 @@
 #!/usr/bin/env node
-import { intro } from '@clack/prompts';
 
 async function main() {
-  const [, , command] = process.argv;
+  const [, , command, subcommand, arg] = process.argv;
 
   if (command === 'init') {
     const { runWizard } = await import('./wizard.js');
     await runWizard();
-  } else if (command === 'chat') {
+    return;
+  }
+
+  if (command === 'chat') {
     const { runChat } = await import('./chat.js');
     await runChat();
-  } else {
-    console.log('Usage: ai-persona [init|chat]');
+    return;
   }
+
+  if (command === 'rag') {
+    const { indexDocuments } = await import('./rag.js');
+
+    if (subcommand === 'init') {
+      const result = await indexDocuments(arg || './docs');
+      console.log(`Indexed ${result.chunks} chunks from ${result.indexedFiles} files.`);
+      return;
+    }
+
+    console.log('Usage: ai-persona rag init <folder>');
+    return;
+  }
+
+  console.log(`
+Usage:
+  ai-persona init
+  ai-persona chat
+  ai-persona rag init <folder>
+`);
 }
 
-main();
+main().catch((error) => {
+  console.error('Error:', error.message);
+  process.exit(1);
+});

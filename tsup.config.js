@@ -4,7 +4,10 @@ export default defineConfig({
   entry: ['src/index.js', 'src/cli.js'],
   format: ['esm', 'cjs'],
   splitting: false,
-  clean: true,
   sourcemap: true,
+  clean: true,
   target: 'node16',
+  banner: {
+    js: '#!/usr/bin/env node',
+  },
 });

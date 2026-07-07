@@ -1,12 +1,12 @@
 {
-  "name": "@ronin-yashu/ai-persona",
+  "name": "@yashu_jaat01/ai-persona",
   "version": "0.1.0",
   "description": "A fluent AI SDK with terminal chat, personas, and RAG support",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "bin": {
-    "ai-persona": "./dist/cli.js"
+    "ai-persona": "dist/cli.js"
   },
   "exports": {
     ".": {
@@ -21,7 +21,6 @@
     "dev": "nodemon src/index.js",
     "build": "tsup",
     "prepublishOnly": "npm run build"
-    
   },
   "repository": {
     "type": "git",
@@ -41,6 +40,9 @@
   },
   "homepage": "https://github.com/Ronin-yashu/NPM#readme",
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.8",
+    "@ai-sdk/google": "^4.0.8",
+    "@ai-sdk/openai": "^4.0.8",
     "@clack/prompts": "^1.7.0",
     "ai": "^7.0.16",
     "dotenv": "^17.4.2"
