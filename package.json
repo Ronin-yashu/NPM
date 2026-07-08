@@ -1,12 +1,12 @@
 {
   "name": "@yashu_jaat01/ai-persona",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "A fluent AI SDK with terminal chat, personas, and RAG support",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "bin": {
-    "ai-persona": "dist/cli.js"
+    "ai-persona": "cli.js"
   },
   "exports": {
     ".": {
@@ -15,7 +15,10 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "cli.js",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "dev": "nodemon src/index.js",

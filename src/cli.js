@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 async function main() {
   const [, , command, subcommand, arg] = process.argv;
 
