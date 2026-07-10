@@ -3,16 +3,15 @@ import { intro, outro } from '@clack/prompts';
 import { ai } from './index.js';
 import { loadConfig, assertUseCaseAllowed } from './config.js';
 
-export async function runChat() {
+export async function runChat(sessionName) {
   assertUseCaseAllowed(['cli', 'both'], 'CLI chat');
 
   const config = loadConfig();
+  const sessionId = sessionName || 'cli-default';
 
-  intro('💬 AI Persona Chat — type "exit" to quit');
+  const client = config?.persona ? ai.personality(config.persona) : ai;
 
-  if (config?.persona) {
-    ai.personality(config.persona);
-  }
+  intro(`💬 AI Persona Chat (${sessionId}) — type "exit" to quit`);
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -36,7 +35,7 @@ export async function runChat() {
     }
 
     try {
-      const response = await ai.chat(input);
+      const response = await client.chat(input, { sessionId });
       console.log(`ai>  ${response}\n`);
     } catch (error) {
       console.error(`Error: ${error.message}\n`);
@@ -46,7 +45,7 @@ export async function runChat() {
   });
 
   rl.on('close', () => {
-    outro('👋 Chat session ended.');
+    outro(`👋 Chat session "${sessionId}" ended.`);
     process.exit(0);
   });
 }

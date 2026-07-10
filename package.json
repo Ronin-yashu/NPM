@@ -1,7 +1,7 @@
 {
   "name": "@yashu_jaat01/ai-persona",
-  "version": "0.1.2",
-  "description": "A fluent AI SDK with terminal chat, personas, and RAG support",
+  "version": "0.2.0",
+  "description": "A fluent AI SDK and CLI for terminal chat, session memory, personalities, and local RAG support",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -20,6 +20,9 @@
     "README.md",
     "LICENSE"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "dev": "nodemon src/index.js",
     "build": "tsup",
@@ -34,7 +37,10 @@
     "cli",
     "sdk",
     "rag",
-    "chatbot"
+    "chatbot",
+    "memory",
+    "session-memory",
+    "llm"
   ],
   "author": "",
   "license": "ISC",

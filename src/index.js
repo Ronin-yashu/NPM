@@ -4,10 +4,18 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { loadConfig, assertUseCaseAllowed } from './config.js';
+import {
+  getSessionMessages,
+  getSessionSummary,
+  setSessionSummary,
+  addSessionMessage,
+  trimSessionMessages
+} from './memory.js';
 
 export class AIClient {
   constructor(apiKey = process.env.AI_API_KEY, provider) {
     const savedConfig = loadConfig();
+
     this.apiKey = apiKey;
     this._provider = provider || savedConfig?.provider || 'google';
     this.systemPrompt = '';
@@ -40,13 +48,47 @@ export class AIClient {
     }
   }
 
-  async chat(message) {
-    assertUseCaseAllowed(['sdk', 'rag'], 'SDK usage');
+  async _generateRollingSummary(sessionId) {
+    const summary = getSessionSummary(sessionId);
+    const history = getSessionMessages(sessionId);
+
+    if (!history.length) {
+      return summary;
+    }
+
+    const transcript = history
+      .map((item) => `${item.role.toUpperCase()}: ${item.content}`)
+      .join('\n');
+
+    const prompt = [
+      'You are maintaining a compact memory summary for a chatbot session.',
+      'Update the summary using the previous summary and the recent conversation.',
+      'Keep only important facts, user preferences, goals, and unresolved topics.',
+      'Write a short paragraph in plain text.',
+      '',
+      `Previous summary:\n${summary || 'None'}`,
+      '',
+      `Recent conversation:\n${transcript}`
+    ].join('\n');
+
+    const { text } = await generateText({
+      model: this._getModel(),
+      prompt
+    });
+
+    const nextSummary = text.trim();
+    setSessionSummary(sessionId, nextSummary);
+    return nextSummary;
+  }
+
+  async chat(message, options = {}) {
+    assertUseCaseAllowed(['sdk', 'rag', 'both'], 'SDK usage');
 
     if (!this.apiKey) {
       throw new Error('No API key found. Run `npx ai-persona init` first.');
     }
 
+    const sessionId = options.sessionId || 'default';
     let context = '';
 
     try {
@@ -60,15 +102,51 @@ export class AIClient {
       context = '';
     }
 
-    const systemMessage = context
-      ? `${this.systemPrompt}\n\nUse this context if it is relevant:\n${context}`
-      : this.systemPrompt;
+    const sessionSummary = getSessionSummary(sessionId);
+
+    const systemParts = [];
+
+    if (this.systemPrompt) {
+      systemParts.push(this.systemPrompt);
+    }
+
+    if (sessionSummary) {
+      systemParts.push(`Conversation summary:\n${sessionSummary}`);
+    }
+
+    if (context) {
+      systemParts.push(`Use this context if it is relevant:\n${context}`);
+    }
+
+    const systemMessage = systemParts.join('\n\n');
+
+    const history = getSessionMessages(sessionId);
+
+    const messages = history.map((item) => ({
+      role: item.role,
+      content: item.content
+    }));
+
+    messages.push({
+      role: 'user',
+      content: message
+    });
 
     const { text } = await generateText({
       model: this._getModel(),
       system: systemMessage,
-      prompt: message,
+      messages
     });
+
+    addSessionMessage(sessionId, 'user', message);
+    addSessionMessage(sessionId, 'assistant', text);
+    trimSessionMessages(sessionId, 12);
+
+    const updatedHistory = getSessionMessages(sessionId);
+    if (updatedHistory.length >= 8) {
+      await this._generateRollingSummary(sessionId);
+      trimSessionMessages(sessionId, 6);
+    }
 
     return text;
   }
