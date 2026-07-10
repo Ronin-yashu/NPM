@@ -1,3 +1,15 @@
+import updateNotifier from 'update-notifier';
+import packageJson from '../package.json' with { type: 'json' };
+
+const notifier = updateNotifier({
+  pkg: packageJson,
+  updateCheckInterval: 1000 * 60 * 60 * 24
+});
+
+notifier.notify({
+  isGlobal: true
+});
+
 async function main() {
   const args = process.argv.slice(2);
   const [command, subcommand, arg1, arg2] = args;
