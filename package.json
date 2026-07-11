@@ -1,6 +1,6 @@
 {
   "name": "@yashu_jaat01/ai-persona",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "A fluent AI SDK and CLI for terminal chat, session memory, personalities, and local RAG support",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -54,7 +54,11 @@
     "@ai-sdk/openai": "^4.0.8",
     "@clack/prompts": "^1.7.0",
     "ai": "^7.0.16",
+    "chalk": "^5.6.2",
     "dotenv": "^17.4.2",
+    "mammoth": "^1.12.0",
+    "ora": "^9.4.1",
+    "pdf-parse": "^2.4.5",
     "update-notifier": "^7.3.1"
   },
   "devDependencies": {

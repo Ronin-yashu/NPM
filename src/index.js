@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { generateText } from 'ai';
+import { generateText, streamText, smoothStream } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
@@ -81,14 +81,7 @@ export class AIClient {
     return nextSummary;
   }
 
-  async chat(message, options = {}) {
-    assertUseCaseAllowed(['sdk', 'rag', 'both'], 'SDK usage');
-
-    if (!this.apiKey) {
-      throw new Error('No API key found. Run `npx ai-persona init` first.');
-    }
-
-    const sessionId = options.sessionId || 'default';
+  async _getChatContext(message, sessionId) {
     let context = '';
 
     try {
@@ -103,7 +96,6 @@ export class AIClient {
     }
 
     const sessionSummary = getSessionSummary(sessionId);
-
     const systemParts = [];
 
     if (this.systemPrompt) {
@@ -121,7 +113,6 @@ export class AIClient {
     const systemMessage = systemParts.join('\n\n');
 
     const history = getSessionMessages(sessionId);
-
     const messages = history.map((item) => ({
       role: item.role,
       content: item.content
@@ -132,23 +123,76 @@ export class AIClient {
       content: message
     });
 
+    return {
+      systemMessage,
+      messages
+    };
+  }
+
+  async _finalizeAssistantTurn(sessionId, userMessage, assistantText) {
+    addSessionMessage(sessionId, 'user', userMessage);
+    addSessionMessage(sessionId, 'assistant', assistantText);
+    trimSessionMessages(sessionId, 12);
+
+    const updatedHistory = getSessionMessages(sessionId);
+
+    if (updatedHistory.length >= 8) {
+      await this._generateRollingSummary(sessionId);
+      trimSessionMessages(sessionId, 6);
+    }
+  }
+
+  async chat(message, options = {}) {
+    assertUseCaseAllowed(['sdk', 'rag', 'both'], 'SDK usage');
+
+    if (!this.apiKey) {
+      throw new Error('No API key found. Run `npx ai-persona init` first.');
+    }
+
+    const sessionId = options.sessionId || 'default';
+    const { systemMessage, messages } = await this._getChatContext(message, sessionId);
+
     const { text } = await generateText({
       model: this._getModel(),
       system: systemMessage,
       messages
     });
 
-    addSessionMessage(sessionId, 'user', message);
-    addSessionMessage(sessionId, 'assistant', text);
-    trimSessionMessages(sessionId, 12);
-
-    const updatedHistory = getSessionMessages(sessionId);
-    if (updatedHistory.length >= 8) {
-      await this._generateRollingSummary(sessionId);
-      trimSessionMessages(sessionId, 6);
-    }
+    await this._finalizeAssistantTurn(sessionId, message, text);
 
     return text;
+  }
+
+  async streamChat(message, options = {}) {
+    assertUseCaseAllowed(['sdk', 'rag', 'both'], 'SDK usage');
+
+    if (!this.apiKey) {
+      throw new Error('No API key found. Run `npx ai-persona init` first.');
+    }
+
+    const sessionId = options.sessionId || 'default';
+    const { systemMessage, messages } = await this._getChatContext(message, sessionId);
+
+    const result = streamText({
+      model: this._getModel(),
+      system: systemMessage,
+      messages,
+      experimental_transform: smoothStream({
+        delayInMs: 60,
+        chunking: 'word'
+      })
+    });
+
+    const finalTextPromise = (async () => {
+      const finalText = await result.text;
+      await this._finalizeAssistantTurn(sessionId, message, finalText);
+      return finalText;
+    })();
+
+    return {
+      textStream: result.textStream,
+      text: finalTextPromise
+    };
   }
 }
 

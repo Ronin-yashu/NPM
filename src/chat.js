@@ -1,4 +1,6 @@
 import readline from 'readline';
+import chalk from 'chalk';
+import ora from 'ora';
 import { intro, outro } from '@clack/prompts';
 import { ai } from './index.js';
 import { loadConfig, assertUseCaseAllowed } from './config.js';
@@ -8,15 +10,14 @@ export async function runChat(sessionName) {
 
   const config = loadConfig();
   const sessionId = sessionName || 'cli-default';
-
   const client = config?.persona ? ai.personality(config.persona) : ai;
 
-  intro(`💬 AI Persona Chat (${sessionId}) — type "exit" to quit`);
+  intro(chalk.cyan(`💬 AI Persona Chat (${sessionId}) — type "exit" to quit`));
 
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
-    prompt: 'you> ',
+    prompt: chalk.green('you> '),
   });
 
   rl.prompt();
@@ -34,18 +35,37 @@ export async function runChat(sessionName) {
       return;
     }
 
+    const spinner = ora({
+      text: chalk.gray('Thinking...'),
+      discardStdin: false,
+    }).start();
+
     try {
-      const response = await client.chat(input, { sessionId });
-      console.log(`ai>  ${response}\n`);
+      const result = await client.streamChat(input, { sessionId });
+
+      spinner.stop();
+      process.stdout.write(chalk.blue('ai>  '));
+
+      let hasOutput = false;
+
+      for await (const chunk of result.textStream) {
+        if (!hasOutput) {
+          hasOutput = true;
+        }
+        process.stdout.write(chunk);
+      }
+
+      process.stdout.write('\n\n');
     } catch (error) {
-      console.error(`Error: ${error.message}\n`);
+      spinner.stop();
+      console.error(chalk.red(`Error: ${error.message}\n`));
     }
 
     rl.prompt();
   });
 
   rl.on('close', () => {
-    outro(`👋 Chat session "${sessionId}" ended.`);
+    outro(chalk.yellow(`👋 Chat session "${sessionId}" ended.`));
     process.exit(0);
   });
 }

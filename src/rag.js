@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
+import { PDFParse } from 'pdf-parse';
+import mammoth from 'mammoth';
 import { embed, embedMany, cosineSimilarity } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
@@ -57,6 +59,28 @@ function chunkText(text, chunkSize = 800, overlap = 100) {
   return chunks;
 }
 
+async function extractTextFromFile(fullPath) {
+  const ext = path.extname(fullPath).toLowerCase();
+
+  if (ext === '.txt' || ext === '.md') {
+    return fs.readFileSync(fullPath, 'utf-8');
+  }
+
+  if (ext === '.pdf') {
+  const buffer = fs.readFileSync(fullPath);
+  const parser = new PDFParse({ data: buffer });
+  const result = await parser.getText();
+  return result.text || '';
+}
+
+  if (ext === '.docx') {
+    const result = await mammoth.extractRawText({ path: fullPath });
+    return result.value || '';
+  }
+
+  throw new Error(`Unsupported file type: ${ext}`);
+}
+
 export async function indexDocuments(folderPath) {
   assertUseCaseAllowed(['rag', 'both'], 'RAG indexing');
 
@@ -72,49 +96,63 @@ export async function indexDocuments(folderPath) {
 
   const files = fs
     .readdirSync(fullFolderPath)
-    .filter((file) => file.endsWith('.txt') || file.endsWith('.md'));
+    .filter((file) => ['.txt', '.md', '.pdf', '.docx'].includes(path.extname(file).toLowerCase()));
 
   if (files.length === 0) {
-    throw new Error('No .txt or .md files found in the provided folder.');
+    throw new Error('No supported files found. Use .txt, .md, .pdf, or .docx files.');
   }
 
   const allChunks = [];
+  let indexedFiles = 0;
 
   for (const file of files) {
     const fullPath = path.join(fullFolderPath, file);
-    const content = fs.readFileSync(fullPath, 'utf-8');
-    const chunks = chunkText(content);
 
-    chunks.forEach((chunk) => {
-      allChunks.push({
-        source: file,
-        text: chunk,
+    try {
+      const content = await extractTextFromFile(fullPath);
+
+      if (!content.trim()) {
+        continue;
+      }
+
+      const chunks = chunkText(content);
+
+      chunks.forEach((chunk, chunkIndex) => {
+        allChunks.push({
+          source: file,
+          chunkIndex,
+          text: chunk
+        });
       });
-    });
+
+      indexedFiles += 1;
+    } catch (error) {
+      console.warn(`Skipping ${file}: ${error.message}`);
+    }
   }
 
   if (allChunks.length === 0) {
-    throw new Error('No valid text chunks were created from the files.');
+    throw new Error('No valid text chunks were created from the supported files.');
   }
 
   const model = getEmbeddingModel();
 
   const { embeddings } = await embedMany({
     model,
-    values: allChunks.map((item) => item.text),
+    values: allChunks.map((item) => item.text)
   });
 
   const store = allChunks.map((item, index) => ({
     ...item,
-    embedding: embeddings[index],
+    embedding: embeddings[index]
   }));
 
   ensureRagDir();
   fs.writeFileSync(RAG_DB_PATH, JSON.stringify(store, null, 2));
 
   return {
-    indexedFiles: files.length,
-    chunks: allChunks.length,
+    indexedFiles,
+    chunks: allChunks.length
   };
 }
 
@@ -130,18 +168,18 @@ export async function retrieveContext(query, topK = 3) {
 
   const { embedding: queryEmbedding } = await embed({
     model,
-    value: query,
+    value: query
   });
 
   const scored = store.map((entry) => ({
     ...entry,
-    similarity: cosineSimilarity(entry.embedding, queryEmbedding),
+    similarity: cosineSimilarity(entry.embedding, queryEmbedding)
   }));
 
   scored.sort((a, b) => b.similarity - a.similarity);
 
   return scored
     .slice(0, topK)
-    .map((item) => `[Source: ${item.source}]\n${item.text}`)
+    .map((item) => `[Source: ${item.source} | Chunk: ${item.chunkIndex}]\n${item.text}`)
     .join('\n\n---\n\n');
 }

@@ -1,22 +1,31 @@
 # @yashu_jaat01/ai-persona
 
-A fluent AI SDK and CLI for terminal chat, personalities, session memory, project integration, and simple local RAG.
+A fluent AI SDK and CLI for terminal chat, session memory, personalities, local RAG, streaming answers, and document-aware workflows.
 
 ## Features
 
 - Interactive setup wizard
 - Terminal chat mode
+- Streaming AI responses in the terminal
+- Colored output and spinner-based CLI UX
 - Named chat sessions with local memory
 - Memory commands: list, show, recent, summary, clear, delete
 - SDK-based AI usage in projects
-- Local RAG for `.txt` and `.md` files
+- Local RAG for `.txt`, `.md`, `.pdf`, and `.docx` files
 - Multi-provider support
 - Use-case based feature locking
+- Update notifications for newer versions
 
 ## Installation
 
 ```bash
 npm install @yashu_jaat01/ai-persona
+```
+
+For global CLI usage:
+
+```bash
+npm install -g @yashu_jaat01/ai-persona
 ```
 
 ## Setup
@@ -157,6 +166,8 @@ npx ai-persona memory delete project-alpha
 
 SDK usage is available in `sdk`, `rag`, or `both` mode.
 
+### Basic chat
+
 ```js
 import { ai } from '@yashu_jaat01/ai-persona';
 
@@ -179,6 +190,16 @@ const reply = await ai.chat('Remember that my favorite language is JavaScript.',
 console.log(reply);
 ```
 
+## Streaming Chat
+
+Terminal chat now supports streaming responses for a smoother experience, along with colored output and a spinner while the model starts responding.
+
+```bash
+npx ai-persona chat
+```
+
+This is built into the CLI automatically, so no extra flags are required.
+
 ## RAG Usage
 
 RAG is available in `rag` or `both` mode.
@@ -190,6 +211,13 @@ RAG answers only work after you index your files first.
 ```bash
 npx ai-persona rag init ./docs
 ```
+
+Supported file types:
+
+- `.txt`
+- `.md`
+- `.pdf`
+- `.docx`
 
 This creates:
 
@@ -236,6 +264,10 @@ If RAG is enabled and files are indexed first, chatbot responses can also be gro
 
 Anthropic is not currently supported for embeddings in the RAG pipeline.
 
+## Version Updates
+
+The CLI can notify users when a newer package version is available, so older installations can upgrade more easily.
+
 ## Troubleshooting
 
 ### Feature is locked
@@ -265,6 +297,15 @@ Make sure:
 1. You selected `rag` or `both`
 2. You indexed files first
 3. `.ai-persona/rag-store.json` exists
+4. Your files are in a supported format: `.txt`, `.md`, `.pdf`, or `.docx`
+
+### PDF parsing issues in ESM
+
+If you are developing locally and hit ESM import issues with `pdf-parse`, make sure your installed package version matches your import style and rebuild before testing.
+
+### Publish errors
+
+If you publish under your personal npm account, use your npm username as the package scope. Scoped public packages need to be published with the correct scope and package access settings [web:847].
 
 ## Local Development
 
